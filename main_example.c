@@ -15,7 +15,7 @@ void app_main()
     //ADF4351 device configuration struct
     static ADF4351_cfg vfo = 
     {
-        .pwrLevel = 3,
+        .pwrlevel = 3,
         .RD2refdouble = 0, ///< ref doubler off
         .RD1Rdiv2 = 0,   ///< ref divider off
         .ClkDiv = 150,
