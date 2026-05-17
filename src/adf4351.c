@@ -247,7 +247,7 @@ int ADF4351_set_ref_freq(ADF4351_cfg *pcfg, uint32_t ref_freq)
 
     if(new_ref_freq > ADF_PFD_MAX)
         return -1;
-    else if(ref_freq < ADF_PFD_MIN)
+    else if(new_ref_freq < ADF_PFD_MIN)
         return -1;
 
     pcfg->_reffreq = ref_freq;
