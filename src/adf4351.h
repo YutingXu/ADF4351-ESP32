@@ -1,6 +1,7 @@
 #ifndef ADF4351_H
 #define ADF4351_H  
 
+#include <stdint.h>
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_timer.h"
@@ -48,7 +49,7 @@ typedef struct
     double _PFDFreq; // The PLL Phase Detect Freq  value for the current frequency. Can be changed if a new reference frequency is used.
     uint32_t ChanStep; // The channel step value. Can be directly changed to set a new frequency step from the defined steps[] array. You should not set an arbitrary value.
     uint32_t _Mod; // The PLL Mod value for the current frequency. this value is overwritten each time AD5941_set_freq() is called.
-    int _Frac; //  The PLL Frac value for the current frequency. This value is overwritten each time sef() is called.
+    uint32_t _Frac; //  The PLL Frac value for the current frequency. This value is overwritten each time sef() is called.
     uint16_t _N_Int; //  The PLL INT value for the current frequency. This value is overwritten each time sef() is called.
     uint8_t pwrlevel; // The power output level settings. Allowed values 0-4
     pin_settings pins; // pin settings for SPI and GPIO
