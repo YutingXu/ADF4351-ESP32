@@ -74,13 +74,19 @@ int ADF4351_set_freq(ADF4351_cfg *pcfg, uint32_t freq)
 
     double PFDFreq = pcfg->_reffreq * (1.0 + pcfg->RD2refdouble) / (pcfg->RCounter * (1.0 + pcfg->RD1Rdiv2)); // find the loop frequency
 
-    double N = freq * pcfg->_outdiv / PFDFreq;
+    double N = (double) freq * pcfg->_outdiv / PFDFreq;
+    if(N >= (double) UINT16_MAX + 1.0)
+    {
+        ESP_LOGE(TAG, "N_int out of range");
+        return -1;
+    }
+
     pcfg->_N_Int = (uint16_t) N;
-    double Mod = PFDFreq / pcfg->ChanStep;
-    Mod = (double) ((uint32_t) Mod);
-    double Frac = (N - pcfg->_N_Int) * Mod + 0.5;
-    pcfg->_Frac = (uint32_t) Frac;
-    pcfg->_Mod = (uint32_t) Mod;
+    uint32_t Mod = (uint32_t) (PFDFreq / pcfg->ChanStep);
+    double frac_part = N - pcfg->_N_Int;
+    uint32_t Frac = (uint32_t) (frac_part * Mod + 0.5);
+    pcfg->_Frac = Frac;
+    pcfg->_Mod = Mod;
 
     if(pcfg->_Frac != 0) 
     {
@@ -89,9 +95,7 @@ int ADF4351_set_freq(ADF4351_cfg *pcfg, uint32_t freq)
         if(gcd > 1) 
         {
             pcfg->_Frac /= gcd;
-            Frac = (double) pcfg->_Frac;
             pcfg->_Mod /= gcd;
-            Mod = (double) Mod;
         }
     }
 
@@ -103,7 +107,7 @@ int ADF4351_set_freq(ADF4351_cfg *pcfg, uint32_t freq)
     } 
     else 
     {
-        cfreq = (PFDFreq * (N + (Frac/Mod))) / pcfg->_outdiv;
+        cfreq = (PFDFreq * (pcfg->_N_Int + ((double) pcfg->_Frac / pcfg->_Mod))) / pcfg->_outdiv;
     }
 
     pcfg->_cfreq = cfreq;
@@ -239,11 +243,11 @@ int ADF4351_set_ref_freq(ADF4351_cfg *pcfg, uint32_t ref_freq)
     else if(ref_freq < 100000)
         return -1;
 
-    float new_ref_freq = ref_freq * (1.0 + pcfg->RD2refdouble) / (pcfg->RCounter * (1.0 + pcfg->RD1Rdiv2));
+    double new_ref_freq = ref_freq * (1.0 + pcfg->RD2refdouble) / (pcfg->RCounter * (1.0 + pcfg->RD1Rdiv2));
 
     if(new_ref_freq > ADF_PFD_MAX)
         return -1;
-    else if(ref_freq < ADF_PFD_MIN)
+    else if(new_ref_freq < ADF_PFD_MIN)
         return -1;
 
     pcfg->_reffreq = ref_freq;
@@ -417,4 +421,3 @@ void ADF4351_initialise(ADF4351_cfg *pcfg)
     ESP_LOGI(TAG, "SPI device successfully attached");
     pcfg->_spi_initialised = true;
 }
-
