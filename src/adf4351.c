@@ -29,8 +29,11 @@
 
 
 #include "adf4351.h"
+#include <assert.h>
 
 static const char *TAG = "PLL";
+
+spi_device_handle_t spi_handle;
 
 uint32_t ADF4351_steps[] = {100, 500, 10000, 50000, 100000, 500000, 1000000};
 
@@ -41,6 +44,9 @@ int ADF4351_set_freq(ADF4351_cfg *pcfg, uint32_t freq)
     // if(freq > ADF_FREQ_MAX) 
     //     return -1;
     if(freq < ADF_FREQ_MIN)
+        return -1;
+
+    if(pcfg->ChanStep == 0 || pcfg->RCounter <= 0)
         return -1;
 
     // equation for RF_OUT
@@ -73,6 +79,7 @@ int ADF4351_set_freq(ADF4351_cfg *pcfg, uint32_t freq)
     }
 
     double PFDFreq = pcfg->_reffreq * (1.0 + pcfg->RD2refdouble) / (pcfg->RCounter * (1.0 + pcfg->RD1Rdiv2)); // find the loop frequency
+    pcfg->_PFDFreq = PFDFreq;
 
     double N = (double) freq * pcfg->_outdiv / PFDFreq;
     if(N >= (double) UINT16_MAX + 1.0)
@@ -242,6 +249,8 @@ int ADF4351_set_ref_freq(ADF4351_cfg *pcfg, uint32_t ref_freq)
         return -1; // change return from 1 to -1 for clearer sign of error
     else if(ref_freq < 100000)
         return -1;
+    else if(pcfg->RCounter <= 0)
+        return -1;
 
     double new_ref_freq = ref_freq * (1.0 + pcfg->RD2refdouble) / (pcfg->RCounter * (1.0 + pcfg->RD1Rdiv2));
 
@@ -319,7 +328,10 @@ void ADF4351_disable(ADF4351_cfg *pcfg)
 
 void ADF4351_set_register_bf(uint32_t *preg, uint8_t start, uint8_t len, uint32_t value)
 {
-    uint32_t bitmask = (1 << len) - 1;
+    if(preg == NULL || len == 0 || len > 32 || start >= 32 || start + len > 32)
+        return;
+
+    uint32_t bitmask = (len == 32) ? UINT32_MAX : (uint32_t) ((1ULL << len) - 1ULL);
     value &= bitmask;
     bitmask <<= start;
     *preg = (*preg & (~bitmask)) | (value << start);
@@ -327,7 +339,11 @@ void ADF4351_set_register_bf(uint32_t *preg, uint8_t start, uint8_t len, uint32_
 
 uint32_t ADF4351_get_register_bf(uint32_t *preg, uint8_t start, uint8_t len)
 {
-    uint32_t bitmask = ((1 << len) - 1) << start;
+    if(preg == NULL || len == 0 || len > 32 || start >= 32 || start + len > 32)
+        return 0;
+
+    uint32_t bitmask = (len == 32) ? UINT32_MAX : (uint32_t) ((1ULL << len) - 1ULL);
+    bitmask <<= start;
     uint32_t result = (*preg & bitmask) >> start;
     return result;
 }
@@ -370,7 +386,7 @@ void ADF4351_initialise(ADF4351_cfg *pcfg)
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_OUTPUT,
         .pull_down_en = 1,
-        .pin_bit_mask = (1 << pcfg->pins.gpio_le)
+        .pin_bit_mask = (1ULL << pcfg->pins.gpio_le)
     };
 
     // GPIO settings for chip enable pin (active high)
@@ -379,7 +395,7 @@ void ADF4351_initialise(ADF4351_cfg *pcfg)
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_OUTPUT,
         .pull_down_en = 1,
-        .pin_bit_mask = (1 << pcfg->pins.gpio_ce)
+        .pin_bit_mask = (1ULL << pcfg->pins.gpio_ce)
     };
 
     // GPIO settings for lock detect pin (high - PLL lock, low - loss of PLL lock)
@@ -387,7 +403,7 @@ void ADF4351_initialise(ADF4351_cfg *pcfg)
     {
         .intr_type = GPIO_INTR_DISABLE,
         .mode = GPIO_MODE_INPUT,
-        .pin_bit_mask = (1 << pcfg->pins.gpio_ld)
+        .pin_bit_mask = (1ULL << pcfg->pins.gpio_ld)
     };
 
 	esp_err_t ret;
