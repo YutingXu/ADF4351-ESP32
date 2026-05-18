@@ -20,17 +20,17 @@
 
 #define SENDER_HOST HSPI_HOST
 
-spi_device_handle_t spi_handle;
+extern spi_device_handle_t spi_handle;
 
 typedef struct 
 {
-    uint8_t gpio_sclk; // CLK pin
-    uint8_t gpio_miso; // data pin
-    uint8_t gpio_mosi; // dummy pin
-    uint8_t gpio_cs; // dummy pin
-    uint8_t gpio_ce; // chip enable
-    uint8_t gpio_le; // load enable
-    uint8_t gpio_ld; // lock detect
+    gpio_num_t gpio_sclk; // CLK pin
+    gpio_num_t gpio_miso; // data pin
+    gpio_num_t gpio_mosi; // dummy pin
+    gpio_num_t gpio_cs; // dummy pin
+    gpio_num_t gpio_ce; // chip enable
+    gpio_num_t gpio_le; // load enable
+    gpio_num_t gpio_ld; // lock detect
 } pin_settings;
 
 // you should not access variables that starts with an underscore, these are reserved for internal calculations
@@ -51,7 +51,7 @@ typedef struct
     uint32_t _Mod; // The PLL Mod value for the current frequency. this value is overwritten each time AD5941_set_freq() is called.
     uint32_t _Frac; //  The PLL Frac value for the current frequency. This value is overwritten each time sef() is called.
     uint16_t _N_Int; //  The PLL INT value for the current frequency. This value is overwritten each time sef() is called.
-    uint8_t pwrlevel; // The power output level settings. Allowed values 0-4
+    uint8_t pwrlevel; // The power output level settings. Allowed values 0-3
     pin_settings pins; // pin settings for SPI and GPIO
     bool _spi_initialised; // SPI initalisation flag
     bool _ce_initialised; // CE initalisation flag
